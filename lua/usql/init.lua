@@ -162,7 +162,17 @@ end
 M.get_temp_sql_file = function(start_line, end_line)
   local tmp_file = vim.fn.tempname() .. ".sql"
   local file = assert(io.open(tmp_file, "w"))
-  file:write(table.concat(vim.api.nvim_buf_get_lines(0, start_line, end_line, false), "\n"))
+  local statement_str = table.concat(
+    vim.api.nvim_buf_get_lines(0, start_line, end_line, false),
+    "\n"
+  )
+
+  -- Ensure the statement has a `;` at the end.
+  if not string.match(statement_str, ";$") then
+    statement_str = statement_str .. ";"
+  end
+
+  file:write(statement_str)
   file:close()
   return tmp_file
 end
@@ -201,21 +211,15 @@ local find_current_statement = function()
         end
         current_node_idx = current_node_idx + 1
       end
-    else
-      -- Parent node is not a SQL, file must have errors.
-      local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
-      return {
-        current = 0,
-        start_line = cursor_line,
-        end_line = cursor_line,
-      }
-    end
 
-    return {
-      current = current_node_idx,
-      start_line = r1,
-      end_line = r2 + 1,
-    }
+      return {
+        current = current_node_idx,
+        start_line = r1,
+        end_line = r2 + 1,
+      }
+    else
+      vim.notify("usql: SQL statement syntax error", vim.levels.log.ERROR)
+    end
   end
 
   return nil
