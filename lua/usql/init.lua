@@ -108,13 +108,28 @@ M.get_connections = function()
   local connections_map = {}
 
   for key, value in pairs(connections) do
-    local protocol = value["protocol"] or ""
-    local hostname = value["hostname"] or ""
-    local port = value["port"] or ""
-    local database = value["database"] or ""
-    local dsn = protocol .. "://" .. hostname .. ":" .. port .. "/" .. database
+
+    local protocol
+    local hostname
+    local port
+    local database
+    local dsn
+    local display
+
+    if type(value) == "table" then
+      protocol = value["protocol"]
+      hostname = value["hostname"]
+      port = value["port"]
+      database = value["database"] or ""
+      dsn = protocol .. "://" .. hostname .. ":" .. port .. "/" .. database
+      display = value["alias"] or key .. " - " .. dsn
+    else
+      dsn = value
+      display = key .. " - " .. dsn
+    end
+
     table.insert(connections_map, {
-      display = key .. " (" .. dsn .. ")",
+      display = display,
       name = key,
       dsn = dsn,
       protocol = protocol,

@@ -75,6 +75,32 @@ vim.keymap.set('n', '<localleader>rf', function()
 5. A split window opens with the query results.
 6. Execute `<localleader>rf` to run all SQL statements contained in the file using `usql`.
 
+## Connections Config
+
+This plugin reads usql default YAML configuration file to retrieve the list of
+available database connections. In addition to usql
+[configuration](https://github.com/xo/usql?tab=readme-ov-file#configuration)
+parameters, this plugin supports additional keys:
+
+* **alias**: Used for display in the connections selector if present. If not
+  present the connection YAML key and DSN are used instead.
+
+Example configuration:
+
+```yaml
+connections:
+
+  my_dev_db:
+    alias: Local DB
+    protocol: postgresql
+    hostname: localhost
+    port: 5432
+    database: my_dev
+    username: my_username
+    password: secret_password
+```
+
+
 ## Lualine
 
 Add `usql` component to your [lualine configuration](https://github.com/nvim-lualine/lualine.nvim?tab=readme-ov-file#default-configuration) to show current connection in
