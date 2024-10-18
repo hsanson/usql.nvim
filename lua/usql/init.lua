@@ -6,9 +6,14 @@ local current_connection = {
   port = "",
   database = ""
 }
+
 local job_output = {}
 local config = require("usql.config")
-local yaml = require("usql.yaml")
+local tunnel = require("usql.tunnel")
+
+-- Ensure to create ssh config and populate it when
+-- plugin is loaded.
+tunnel.create_ssh_config()
 
 local M = {}
 
@@ -64,6 +69,51 @@ local open_usql_buffer = function(contents)
   end
 end
 
+M.build_dsn_str = function(conn)
+
+  if conn["dsn"] then
+    return conn["dsn"]
+  end
+
+  local name = conn["name"]
+  local dsn = ""
+
+  if conn["protocol"] then
+    dsn = dsn .. conn["protocol"] .. "://"
+  end
+
+  if conn["username"] then
+    dsn = dsn .. conn["username"]
+
+    if conn["password"] then
+      dsn = dsn .. ":" .. conn["password"]
+    end
+
+    dsn = dsn .. "@"
+  end
+
+  if conn["ssh_config"] then
+    tunnel.create_ssh_config()
+    local ssh_conn = tunnel.find_by_name(name) or {}
+    dsn = dsn .. "localhost:" .. ssh_conn["local_port"]
+  else
+    if conn["hostname"] then
+      dsn = dsn .. conn["hostname"]
+    end
+
+    if conn["port"] then
+      dsn = dsn .. ":" .. conn["port"]
+    end
+  end
+
+  if conn["database"] then
+    dsn = dsn .. "/" .. conn["database"]
+  end
+
+  conn["dsn"] = dsn
+  return conn["dsn"]
+end
+
 -- Create an autocmd to delete the buffer when the window is closed
 -- This is necessary to prevent the buffer from being left behind
 -- when the window is closed
@@ -85,61 +135,17 @@ end
 
 M.set_current_connection = function(conn)
   vim.notify("Change connection " .. conn["display"], vim.log.levels.INFO)
+
+  -- Create ssh tunnel if required.
+  if conn["ssh_config"] then
+    tunnel.create_tunnel(conn["name"])
+  end
+
   current_connection = conn
 end
 
 M.get_current_connection = function()
   return current_connection
-end
-
-M.get_connections = function()
-  local config_file = vim.fs.normalize(config.config_path)
-
-  if vim.fn.filereadable(config_file) == 0 then
-    vim.notify("usql: config file not found", vim.log.levels.WARN)
-    return {}
-  end
-
-  local file = assert(io.open(config_file, "r"))
-  local yaml_map = yaml.parse(file:read("*all")) or {}
-  file:close()
-
-  local connections = yaml_map["connections"] or {}
-  local connections_map = {}
-
-  for key, value in pairs(connections) do
-
-    local protocol
-    local hostname
-    local port
-    local database
-    local dsn
-    local display
-
-    if type(value) == "table" then
-      protocol = value["protocol"]
-      hostname = value["hostname"]
-      port = value["port"]
-      database = value["database"] or ""
-      dsn = protocol .. "://" .. hostname .. ":" .. port .. "/" .. database
-      display = value["alias"] or key .. " - " .. dsn
-    else
-      dsn = value
-      display = key .. " - " .. dsn
-    end
-
-    table.insert(connections_map, {
-      display = display,
-      name = key,
-      dsn = dsn,
-      protocol = protocol,
-      hostname = hostname,
-      port = port,
-      database = database,
-    })
-  end
-
-  return connections_map
 end
 
 M.select_connection = function()
@@ -148,7 +154,7 @@ M.select_connection = function()
     telescope.extensions.usql.connections()
   else
     vim.ui.select(
-      M.get_connections(), {
+      config.get_connections(), {
         prompt = "Database Connections",
         format_item = function(entry)
           return entry["display"]
@@ -183,7 +189,7 @@ M.execute = function(start_line, end_line)
     "-q",
     "-f",
     M.get_temp_sql_file(start_line, end_line),
-    M.get_current_connection()["name"]
+    M.build_dsn_str(M.get_current_connection())
   }, " ")
 end
 

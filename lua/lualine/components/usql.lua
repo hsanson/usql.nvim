@@ -23,7 +23,7 @@ end
 function M.update_status()
   local current_filetype = vim.bo.filetype
   if current_filetype == "sql" then
-    return usql.get_current_connection()["name"] or "not connected"
+    return usql.get_current_connection()["display"] or "not connected"
   end
   return ""
 end

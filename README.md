@@ -89,7 +89,6 @@ Example configuration:
 
 ```yaml
 connections:
-
   my_dev_db:
     alias: Local DB
     protocol: postgresql
@@ -100,6 +99,31 @@ connections:
     password: secret_password
 ```
 
+## SSH Tunnel
+
+This plugin enhances `usql` by adding the capability of defining SSH tunnels in
+the database configuration. If a database connection has the `ssh_config` key,
+this plugin will create and SSH tunnel and instruct `usql` to use the tunnel
+when connecting to the database.
+
+Example:
+
+```yaml
+connections:
+  my_dev_db:
+    alias: Local DB
+    protocol: postgresql
+    hostname: localhost
+    port: 5432
+    database: my_dev
+    username: my_username
+    password: secret_password
+    ssh_config:
+        ssh_host: 192.168.56.50
+        ssh_port: 22
+        ssh_user: admin
+        ssh_key: ~/.ssh/id_rsa
+```
 
 ## Lualine
 
