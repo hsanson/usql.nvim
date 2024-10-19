@@ -21,6 +21,7 @@ Simple Neovim plugin for the universal command-line database interface [usql](ht
   - [nvim-treesitter SQL parser](https://github.com/nvim-treesitter/nvim-treesitter?tab=readme-ov-file#supported-languages) `:TSInstall sql`.
 - [telescope.nvim (optional)](https://github.com/nvim-telescope/telescope.nvim)
 - [lualine.nvim (optional)](https://github.com/nvim-lualine/lualine.nvim)
+- ssh client (optional): Used to create SSH tunnels.
 
 ## Installation
 
@@ -82,15 +83,15 @@ available database connections. In addition to usql
 [configuration](https://github.com/xo/usql?tab=readme-ov-file#configuration)
 parameters, this plugin supports additional keys:
 
-* **alias**: Used for display in the connections selector if present. If not
-  present the connection YAML key and DSN are used instead.
+* **name**: Used for display in the connections selector if present. If not
+  present the connection YAML key is used instead.
 
 Example configuration:
 
 ```yaml
 connections:
   my_dev_db:
-    alias: Local DB
+    name: Local DB
     protocol: postgresql
     hostname: localhost
     port: 5432
@@ -111,9 +112,9 @@ Example:
 ```yaml
 connections:
   my_dev_db:
-    alias: Local DB
+    name: Local DB
     protocol: postgresql
-    hostname: localhost
+    hostname: [database hostname]
     port: 5432
     database: my_dev
     username: my_username
@@ -124,6 +125,14 @@ connections:
         ssh_user: admin
         ssh_key: ~/.ssh/id_rsa
 ```
+
+> [!NOTE]
+> Ensure you have configured an ssh-agent or similar and that you can connect to
+> the ssh host without being prompt for the passphrase.
+
+> [!IMPORTAN]
+> SSH tunnels support only public key authentication. Support for plain password
+> authentication is not planned and not recommended for production use.
 
 ## Lualine
 

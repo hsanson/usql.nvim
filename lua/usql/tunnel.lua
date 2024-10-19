@@ -5,8 +5,40 @@ local config = require("usql.config")
 
 M = {}
 
+M.find_by_name = function(name)
+  for _, tunnel in ipairs(tunnels) do
+    if tunnel["name"] == name then
+      return tunnel
+    end
+  end
+  return nil
+end
+
+-- Return true if the tunnel is connected,
+-- false otherwise.
+local connected = function(name)
+  local tunnel = M.find_by_name(name)
+  if tunnel and tunnel["connected"] then
+    return true
+  end
+  return false
+end
+
+M.find_by_job_id = function(job_id)
+  for _, tunnel in ipairs(tunnels) do
+    if tunnel["job_id"] == job_id then
+      return tunnel
+    end
+  end
+  return nil
+end
+
+local get_tunnels = function()
+  return tunnels
+end
+
 -- Generate ssh config file for tunnels.
-M.create_ssh_config = function()
+local create_ssh_config = function()
 
   if ssh_config and vim.fn.filereadable(ssh_config) then
     return ssh_config
@@ -56,31 +88,26 @@ M.create_ssh_config = function()
   return ssh_config
 end
 
--- Creates a file with the passphrase.
-local create_passphrase_file = function(db_connection)
-  local tmp_file = vim.fn.tempname()
-  local file = assert(io.open(tmp_file, "w"))
-  file:write(db_connection["ssh_phrase"] or "")
-  file:close()
-  return tmp_file
-end
+-- Create config when requiring this module to ensure
+-- tunnels are available for other modules.
+create_ssh_config()
 
-M.ssh_command = function(name)
+local ssh_command = function(name)
   return table.concat({
     "ssh",
     "-N",
     "-n",
     "-F",
-    M.create_ssh_config(),
+    create_ssh_config(),
     name
   }, " ")
 end
 
 M.create_tunnel = function(name)
 
-  -- Generate ssh config file and populates
-  -- tunnels list.
-  M.create_ssh_config()
+  -- Safeguard to ensure tunnels configuration exists
+  -- before creating a tunnel.
+  create_ssh_config()
 
   if not M.find_by_name(name) then
     vim.notify(
@@ -91,11 +118,11 @@ M.create_tunnel = function(name)
   end
 
   -- If already connected do nothing.
-  if M.connected(name) then
+  if connected(name) then
     return
   end
 
-  local cmd = M.ssh_command(name)
+  local cmd = ssh_command(name)
   local job_id = vim.fn.jobstart(cmd, {
     on_stdout = function(_, _)
     end,
@@ -130,38 +157,6 @@ M.destroy_tunnel = function(name)
       vim.log.levels.WARN
     )
   end
-end
-
-M.find_by_name = function(name)
-  for _, tunnel in ipairs(tunnels) do
-    if tunnel["name"] == name then
-      return tunnel
-    end
-  end
-  return nil
-end
-
--- Return true if the tunnel is connected,
--- false otherwise.
-M.connected = function(name)
-  local tunnel = M.find_by_name(name)
-  if tunnel and tunnel["connected"] then
-    return true
-  end
-  return false
-end
-
-M.find_by_job_id = function(job_id)
-  for _, tunnel in ipairs(tunnels) do
-    if tunnel["job_id"] == job_id then
-      return tunnel
-    end
-  end
-  return nil
-end
-
-M.get_tunnels = function()
-  return tunnels
 end
 
 return M

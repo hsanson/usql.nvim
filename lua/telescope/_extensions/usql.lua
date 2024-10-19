@@ -23,7 +23,7 @@ local connections = function(opts)
         return {
           value = entry,
           display = entry["display"],
-          ordinal = entry["display"]
+          ordinal = entry["name"]
         }
       end
     },

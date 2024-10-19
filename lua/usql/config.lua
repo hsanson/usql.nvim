@@ -54,7 +54,7 @@ M.get_connections = function()
       hostname = value["hostname"]
       port = value["port"]
       database = value["database"] or ""
-      display = value["alias"] or key
+      display = value["display"] or key
       ssh_config = value["ssh_config"]
       username = value["username"]
       password = value["password"]
@@ -64,8 +64,8 @@ M.get_connections = function()
     end
 
     table.insert(connections_map, {
-      display = display,
       name = key,
+      display = display,
       dsn = dsn,
       protocol = protocol,
       hostname = hostname,

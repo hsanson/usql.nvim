@@ -1,5 +1,6 @@
 local current_connection = {
   name = "",
+  display = "",
   dsn  = "",
   protocol = "",
   hostname = "",
@@ -8,12 +9,9 @@ local current_connection = {
 }
 
 local job_output = {}
+local utils = require("usql.utils")
 local config = require("usql.config")
 local tunnel = require("usql.tunnel")
-
--- Ensure to create ssh config and populate it when
--- plugin is loaded.
-tunnel.create_ssh_config()
 
 local M = {}
 
@@ -69,6 +67,10 @@ local open_usql_buffer = function(contents)
   end
 end
 
+-- Rudimentary method to generate DSN connection strings.
+-- If the connection has ssh tunnel this replaces the
+-- database host/port with the tunnel host/port so usql
+-- connects via the tunnel.
 M.build_dsn_str = function(conn)
 
   if conn["dsn"] then
@@ -83,17 +85,16 @@ M.build_dsn_str = function(conn)
   end
 
   if conn["username"] then
-    dsn = dsn .. conn["username"]
+    dsn = dsn .. utils.url_escape(conn["username"])
 
     if conn["password"] then
-      dsn = dsn .. ":" .. conn["password"]
+      dsn = dsn .. ":" .. utils.url_escape(conn["password"])
     end
 
     dsn = dsn .. "@"
   end
 
   if conn["ssh_config"] then
-    tunnel.create_ssh_config()
     local ssh_conn = tunnel.find_by_name(name) or {}
     dsn = dsn .. "localhost:" .. ssh_conn["local_port"]
   else
@@ -129,6 +130,7 @@ vim.api.nvim_create_autocmd("WinClosed", {
   end,
 })
 
+-- Lazy.nvim setup function.
 M.setup = function(opts)
   require("usql.config").update(opts)
 end
@@ -173,7 +175,8 @@ M.get_temp_sql_file = function(start_line, end_line)
     "\n"
   )
 
-  -- Ensure the statement has a `;` at the end.
+  -- Ensure the statement has `;` at the end or usql would
+  -- never return a response.
   if not string.match(statement_str, ";$") then
     statement_str = statement_str .. ";"
   end
@@ -194,6 +197,7 @@ M.execute = function(start_line, end_line)
 end
 
 -- Look for the statement closest to current cursor position
+-- using Tree-sitter SQL parser.
 local find_current_statement = function()
   local ts = vim.treesitter
 
@@ -245,11 +249,7 @@ M.run_statement = function()
 end
 
 M.run_file = function()
-  local statement = find_current_statement()
-
-  if statement then
-    M.run(0, -1)
-  end
+  M.run(0, -1)
 end
 
 M.run = function(start_line, end_line)
