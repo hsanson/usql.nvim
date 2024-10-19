@@ -83,15 +83,15 @@ available database connections. In addition to usql
 [configuration](https://github.com/xo/usql?tab=readme-ov-file#configuration)
 parameters, this plugin supports additional keys:
 
-* **name**: Used for display in the connections selector if present. If not
-  present the connection YAML key is used instead.
+* **display**: Used for display in the connections selector if present and
+  lualine status. If not present the connection YAML key is used instead.
 
 Example configuration:
 
 ```yaml
 connections:
   my_dev_db:
-    name: Local DB
+    display: Local DB
     protocol: postgresql
     hostname: localhost
     port: 5432
@@ -112,7 +112,7 @@ Example:
 ```yaml
 connections:
   my_dev_db:
-    name: Local DB
+    display: Local DB
     protocol: postgresql
     hostname: [database hostname]
     port: 5432
@@ -146,5 +146,3 @@ sections = {
     },
 }
 ```
-
-
