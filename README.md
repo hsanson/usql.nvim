@@ -130,7 +130,7 @@ connections:
 > Ensure you have configured an ssh-agent or similar and that you can connect to
 > the ssh host without being prompt for the passphrase.
 
-> [!IMPORTAN]
+> [!IMPORTANT]
 > SSH tunnels support only public key authentication. Support for plain password
 > authentication is not planned and not recommended for production use.
 
