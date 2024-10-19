@@ -1,14 +1,17 @@
 local current_connection = {
   name = "",
+  display = "",
   dsn  = "",
   protocol = "",
   hostname = "",
   port = "",
   database = ""
 }
+
 local job_output = {}
+local utils = require("usql.utils")
 local config = require("usql.config")
-local yaml = require("usql.yaml")
+local tunnel = require("usql.tunnel")
 
 local M = {}
 
@@ -64,6 +67,54 @@ local open_usql_buffer = function(contents)
   end
 end
 
+-- Rudimentary method to generate DSN connection strings.
+-- If the connection has ssh tunnel this replaces the
+-- database host/port with the tunnel host/port so usql
+-- connects via the tunnel.
+M.build_dsn_str = function(conn)
+
+  if conn["dsn"] then
+    return conn["dsn"]
+  end
+
+  local name = conn["name"]
+  local dsn = ""
+
+  if conn["protocol"] then
+    dsn = dsn .. conn["protocol"] .. "://"
+  end
+
+  if conn["username"] then
+    dsn = dsn .. utils.url_escape(conn["username"])
+
+    if conn["password"] then
+      dsn = dsn .. ":" .. utils.url_escape(conn["password"])
+    end
+
+    dsn = dsn .. "@"
+  end
+
+  if conn["ssh_config"] then
+    local ssh_conn = tunnel.find_by_name(name) or {}
+    dsn = dsn .. "localhost:" .. ssh_conn["local_port"]
+  else
+    if conn["hostname"] then
+      dsn = dsn .. conn["hostname"]
+    end
+
+    if conn["port"] then
+      dsn = dsn .. ":" .. conn["port"]
+    end
+  end
+
+  if conn["database"] then
+    dsn = dsn .. "/" .. conn["database"]
+  end
+
+  conn["dsn"] = dsn
+  return conn["dsn"]
+end
+
 -- Create an autocmd to delete the buffer when the window is closed
 -- This is necessary to prevent the buffer from being left behind
 -- when the window is closed
@@ -79,67 +130,24 @@ vim.api.nvim_create_autocmd("WinClosed", {
   end,
 })
 
+-- Lazy.nvim setup function.
 M.setup = function(opts)
   require("usql.config").update(opts)
 end
 
 M.set_current_connection = function(conn)
   vim.notify("Change connection " .. conn["display"], vim.log.levels.INFO)
+
+  -- Create ssh tunnel if required.
+  if conn["ssh_config"] then
+    tunnel.create_tunnel(conn["name"])
+  end
+
   current_connection = conn
 end
 
 M.get_current_connection = function()
   return current_connection
-end
-
-M.get_connections = function()
-  local config_file = vim.fs.normalize(config.config_path)
-
-  if vim.fn.filereadable(config_file) == 0 then
-    vim.notify("usql: config file not found", vim.log.levels.WARN)
-    return {}
-  end
-
-  local file = assert(io.open(config_file, "r"))
-  local yaml_map = yaml.parse(file:read("*all")) or {}
-  file:close()
-
-  local connections = yaml_map["connections"] or {}
-  local connections_map = {}
-
-  for key, value in pairs(connections) do
-
-    local protocol
-    local hostname
-    local port
-    local database
-    local dsn
-    local display
-
-    if type(value) == "table" then
-      protocol = value["protocol"]
-      hostname = value["hostname"]
-      port = value["port"]
-      database = value["database"] or ""
-      dsn = protocol .. "://" .. hostname .. ":" .. port .. "/" .. database
-      display = value["alias"] or key .. " - " .. dsn
-    else
-      dsn = value
-      display = key .. " - " .. dsn
-    end
-
-    table.insert(connections_map, {
-      display = display,
-      name = key,
-      dsn = dsn,
-      protocol = protocol,
-      hostname = hostname,
-      port = port,
-      database = database,
-    })
-  end
-
-  return connections_map
 end
 
 M.select_connection = function()
@@ -148,7 +156,7 @@ M.select_connection = function()
     telescope.extensions.usql.connections()
   else
     vim.ui.select(
-      M.get_connections(), {
+      config.get_connections(), {
         prompt = "Database Connections",
         format_item = function(entry)
           return entry["display"]
@@ -162,7 +170,18 @@ end
 M.get_temp_sql_file = function(start_line, end_line)
   local tmp_file = vim.fn.tempname() .. ".sql"
   local file = assert(io.open(tmp_file, "w"))
-  file:write(table.concat(vim.api.nvim_buf_get_lines(0, start_line, end_line, false), "\n"))
+  local statement_str = table.concat(
+    vim.api.nvim_buf_get_lines(0, start_line, end_line, false),
+    "\n"
+  )
+
+  -- Ensure the statement has `;` at the end or usql would
+  -- never return a response.
+  if not string.match(statement_str, ";$") then
+    statement_str = statement_str .. ";"
+  end
+
+  file:write(statement_str)
   file:close()
   return tmp_file
 end
@@ -173,11 +192,12 @@ M.execute = function(start_line, end_line)
     "-q",
     "-f",
     M.get_temp_sql_file(start_line, end_line),
-    M.get_current_connection()["name"]
+    M.build_dsn_str(M.get_current_connection())
   }, " ")
 end
 
 -- Look for the statement closest to current cursor position
+-- using Tree-sitter SQL parser.
 local find_current_statement = function()
   local ts = vim.treesitter
 
@@ -201,21 +221,15 @@ local find_current_statement = function()
         end
         current_node_idx = current_node_idx + 1
       end
-    else
-      -- Parent node is not a SQL, file must have errors.
-      local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
-      return {
-        current = 0,
-        start_line = cursor_line,
-        end_line = cursor_line,
-      }
-    end
 
-    return {
-      current = current_node_idx,
-      start_line = r1,
-      end_line = r2 + 1,
-    }
+      return {
+        current = current_node_idx,
+        start_line = r1,
+        end_line = r2 + 1,
+      }
+    else
+      vim.notify("usql: SQL statement syntax error", vim.levels.log.ERROR)
+    end
   end
 
   return nil
@@ -235,11 +249,7 @@ M.run_statement = function()
 end
 
 M.run_file = function()
-  local statement = find_current_statement()
-
-  if statement then
-    M.run(0, -1)
-  end
+  M.run(0, -1)
 end
 
 M.run = function(start_line, end_line)

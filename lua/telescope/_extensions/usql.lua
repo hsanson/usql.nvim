@@ -5,6 +5,7 @@ if not has_telescope then
 end
 
 local usql = require("usql")
+local config = require("usql.config")
 local pickers = require "telescope.pickers"
 local finders = require "telescope.finders"
 local conf = require("telescope.config").values
@@ -17,12 +18,12 @@ local connections = function(opts)
   pickers.new(opts, {
     prompt_title = "Database Connections",
     finder = finders.new_table {
-      results = usql.get_connections(),
+      results = config.get_connections(),
       entry_maker = function(entry)
         return {
           value = entry,
           display = entry["display"],
-          ordinal = entry["display"]
+          ordinal = entry["name"]
         }
       end
     },

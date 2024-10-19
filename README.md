@@ -21,6 +21,7 @@ Simple Neovim plugin for the universal command-line database interface [usql](ht
   - [nvim-treesitter SQL parser](https://github.com/nvim-treesitter/nvim-treesitter?tab=readme-ov-file#supported-languages) `:TSInstall sql`.
 - [telescope.nvim (optional)](https://github.com/nvim-telescope/telescope.nvim)
 - [lualine.nvim (optional)](https://github.com/nvim-lualine/lualine.nvim)
+- ssh client (optional): Used to create SSH tunnels.
 
 ## Installation
 
@@ -82,16 +83,15 @@ available database connections. In addition to usql
 [configuration](https://github.com/xo/usql?tab=readme-ov-file#configuration)
 parameters, this plugin supports additional keys:
 
-* **alias**: Used for display in the connections selector if present. If not
-  present the connection YAML key and DSN are used instead.
+* **display**: Used for display in the connections selector if present and
+  lualine status. If not present the connection YAML key is used instead.
 
 Example configuration:
 
 ```yaml
 connections:
-
   my_dev_db:
-    alias: Local DB
+    display: Local DB
     protocol: postgresql
     hostname: localhost
     port: 5432
@@ -100,6 +100,39 @@ connections:
     password: secret_password
 ```
 
+## SSH Tunnel
+
+This plugin enhances `usql` by adding the capability of defining SSH tunnels in
+the database configuration. If a database connection has the `ssh_config` key,
+this plugin will create and SSH tunnel and instruct `usql` to use the tunnel
+when connecting to the database.
+
+Example:
+
+```yaml
+connections:
+  my_dev_db:
+    display: Local DB
+    protocol: postgresql
+    hostname: [database hostname]
+    port: 5432
+    database: my_dev
+    username: my_username
+    password: secret_password
+    ssh_config:
+        ssh_host: 192.168.56.50
+        ssh_port: 22
+        ssh_user: admin
+        ssh_key: ~/.ssh/id_rsa
+```
+
+> [!NOTE]
+> Ensure you have configured an ssh-agent or similar and that you can connect to
+> the ssh host without being prompt for the passphrase.
+
+> [!IMPORTAN]
+> SSH tunnels support only public key authentication. Support for plain password
+> authentication is not planned and not recommended for production use.
 
 ## Lualine
 
@@ -113,5 +146,3 @@ sections = {
     },
 }
 ```
-
-
