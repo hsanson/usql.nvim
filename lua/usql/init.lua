@@ -167,11 +167,14 @@ M.select_connection = function()
   end
 end
 
-M.get_temp_sql_file = function(start_line, end_line)
+M.get_temp_sql_file = function(start_row, start_col, end_row, end_col)
+  local bufnr = vim.api.nvim_get_current_buf()
   local tmp_file = vim.fn.tempname() .. ".sql"
   local file = assert(io.open(tmp_file, "w"))
   local statement_str = table.concat(
-    vim.api.nvim_buf_get_lines(0, start_line, end_line, false),
+    vim.api.nvim_buf_get_text(bufnr,
+      start_row, start_col, end_row, end_col, {}
+    ),
     "\n"
   )
 
@@ -186,12 +189,12 @@ M.get_temp_sql_file = function(start_line, end_line)
   return tmp_file
 end
 
-M.execute = function(start_line, end_line)
+M.execute = function(start_row, start_col, end_row, end_col)
   return table.concat({
     vim.fs.normalize(config.usql_path),
     "-q",
     "-f",
-    M.get_temp_sql_file(start_line, end_line),
+    M.get_temp_sql_file(start_row, start_col, end_row, end_col),
     M.build_dsn_str(M.get_current_connection())
   }, " ")
 end
@@ -207,8 +210,8 @@ local find_current_statement = function()
   end
 
   if current_node then
-    local r1, _, _ = current_node:start()
-    local r2, _, _ = current_node:end_()
+    local r1, c1, _ = current_node:start()
+    local r2, c2, _ = current_node:end_()
 
     local sql_file = current_node:parent()
 
@@ -224,8 +227,10 @@ local find_current_statement = function()
 
       return {
         current = current_node_idx,
-        start_line = r1,
-        end_line = r2 + 1,
+        start_row = r1,
+        start_col = c1,
+        end_row = r2,
+        end_col = c2
       }
     else
       vim.notify("usql: SQL statement syntax error", vim.levels.log.ERROR)
@@ -239,7 +244,10 @@ M.run_statement = function()
   local statement = find_current_statement()
 
   if statement then
-    M.run(statement.start_line, statement.end_line)
+    M.run(
+      statement.start_row, statement.start_col,
+      statement.end_row, statement.end_col
+    )
   else
     vim.notify(
       "Usql: no SQL statement found at current cursor position",
@@ -248,11 +256,21 @@ M.run_statement = function()
   end
 end
 
-M.run_file = function()
-  M.run(0, -1)
+M.run_visual_statement = function()
+  local pos1 = vim.fn.getpos(".")
+  local pos2 = vim.fn.getpos("v")
+  if pos1[2] > pos2[2] or pos1[3] > pos2[3] then
+    M.run(pos2[2] - 1, pos2[3] - 1, pos1[2] - 1, pos1[3] - 1)
+  else
+    M.run(pos1[2] - 1, pos1[3] - 1, pos2[2] - 1, pos2[3] - 1)
+  end
 end
 
-M.run = function(start_line, end_line)
+M.run_file = function()
+  M.run(0, 0, -1, -1)
+end
+
+M.run = function(start_row, start_col, end_row, end_col)
 
   local usql_path = vim.fs.normalize(config.usql_path)
   if vim.fn.executable(usql_path) == 0 then
@@ -262,7 +280,7 @@ M.run = function(start_line, end_line)
     return
   end
 
-  vim.fn.jobstart(M.execute(start_line, end_line), {
+  vim.fn.jobstart(M.execute(start_row, start_col, end_row, end_col), {
     on_stdout = function(jid, contents)
       local job_stdout = get_job_stdout_contents(jid)
       for _, line in ipairs(contents) do
