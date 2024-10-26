@@ -53,26 +53,18 @@ Create some key maps to execute SQL queries, usually in `ftplugins/sql.lua` file
 
 ```lua
 local augroup = vim.api.nvim_create_augroup
-
 local group = augroup('UsqlGroup', { clear = true })
 
-vim.keymap.set('n', '<localleader>re', function()
-    require("usql").select_connection()
-  end, { desc = "Usql switch connection", remap = false, buffer = 0 })
-
-vim.keymap.set('n', '<localleader>rr', function()
-    require("usql").run_statement()
-  end, { desc = "Usql execute SQL statement under the cursor", remap = false, buffer = 0 })
-
-vim.keymap.set('n', '<localleader>rf', function()
-    require("usql").run_file()
-  end, { desc = "Usql execute whole SQL file", remap = false, buffer = 0 })
+vim.keymap.set("n", "<localleader>re", "<Plug>(SelectConnection)")
+vim.keymap.set({"n", "v"}, "<localleader>rr", "<Plug>(ExecuteStatement)")
+vim.keymap.set("n", "<localleader>rf", "<Plug>(ExecuteFile)")
 ```
 
-1. Open an `sql` file.
+1. Open a `sql` file.
 2. Execute `<localleader>re` and select connection to use.
 3. Move the cursor to any SQL statement.
-4. Execute `<localleader>rr` to run the SQL statement using `usql`.
+4. Execute `<localleader>rr` to run SQL statement under the cursor or visually
+   selected using `usql`.
 5. A split window opens with the query results.
 6. Execute `<localleader>rf` to run all SQL statements contained in the file using `usql`.
 
