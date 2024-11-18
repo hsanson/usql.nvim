@@ -52,9 +52,6 @@ Via [lazy.nvim](https://github.com/folke/lazy.nvim):
 Create some key maps to execute SQL queries, usually in `ftplugins/sql.lua` file:
 
 ```lua
-local augroup = vim.api.nvim_create_augroup
-local group = augroup('UsqlGroup', { clear = true })
-
 vim.keymap.set("n", "<localleader>re", "<Plug>(SelectConnection)")
 vim.keymap.set({"n", "v"}, "<localleader>rr", "<Plug>(ExecuteStatement)")
 vim.keymap.set("n", "<localleader>rf", "<Plug>(ExecuteFile)")
