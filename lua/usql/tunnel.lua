@@ -33,7 +33,7 @@ M.find_by_job_id = function(job_id)
   return nil
 end
 
-local get_tunnels = function()
+M.get_tunnels = function()
   return tunnels
 end
 
