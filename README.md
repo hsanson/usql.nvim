@@ -11,7 +11,15 @@
 
 <p></p>
 
-Simple Neovim plugin for the universal command-line database interface [usql](https://github.com/xo/usql). It allows to execute SQL statements and display the results in a split window from within Neovim.
+Simple Neovim plugin for the universal command-line database interface [usql](https://github.com/xo/usql). It depens on [yarepl.nvim](https://github.com/milanglacier/yarepl.nvim) for the heavy lifting and adds helpers to make it easier to work with SQL:
+
+- Provide yarepl command and formatter for usql.
+- Database connection selector using vim.ui or telescope if available.
+- SSH tunneling on top of usql database connections.
+- Keymaps to work with usql repl:
+  - <Plug>(SelectConnection)
+  - <Plug>(SendStatement)
+  - <Plug>(SendBuffer)
 
 ## Requirements
 
@@ -19,6 +27,7 @@ Simple Neovim plugin for the universal command-line database interface [usql](ht
 - [usql](https://github.com/xo/usql)
 - [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter)
   - [nvim-treesitter SQL parser](https://github.com/nvim-treesitter/nvim-treesitter?tab=readme-ov-file#supported-languages) `:TSInstall sql`.
+- [yarepl.nvim](https://github.com/milanglacier/yarepl.nvim)
 - [telescope.nvim (optional)](https://github.com/nvim-telescope/telescope.nvim)
 - [lualine.nvim (optional)](https://github.com/nvim-lualine/lualine.nvim)
 - ssh client (optional): Used to create SSH tunnels.
@@ -47,23 +56,66 @@ Via [lazy.nvim](https://github.com/folke/lazy.nvim):
 },
 ```
 
-## Usage
-
-Create some key maps to execute SQL queries, usually in `ftplugins/sql.lua` file:
+In your YAREPL configuration add usql meta:
 
 ```lua
-vim.keymap.set("n", "<localleader>re", "<Plug>(SelectConnection)")
-vim.keymap.set({"n", "v"}, "<localleader>rr", "<Plug>(ExecuteStatement)")
-vim.keymap.set("n", "<localleader>rf", "<Plug>(ExecuteFile)")
+{
+  "milanglacier/yarepl.nvim",
+  config = function()
+    local yarepl = require("yarepl")
+    local usql = require("usql.yarepl")
+
+    yarepl.setup({
+      metas = {
+        usql = { cmd = usql.cmd, formatter = usql.formatter },
+      },
+    })
+
+  end
+}
 ```
 
+## Usage
+
+Create key map to open connection selector:
+
+```lua
+vim.keymap.set("n",
+  "<localleader>rt",
+  "<Plug>(SelectConnection)",
+  { desc = "Select DB connection" }
+  )
+```
+
+Create key maps to send SQL statement under cursor and whole buffer:
+
+```lua
+vim.keymap.set("n",
+  "<localleader>rs",
+  "<Plug>(SendStatement)",
+  { desc = "Send SQL Statement" }
+  )
+
+vim.keymap.set("n",
+  "<localleader>rf",
+  "<Plug>(SendBuffer)",
+  { desc = "Send current buffer" }
+  )
+```
+
+> [!NOTE]
+> You may want to add the above key maps in the ftplugin/sql.lua file so they
+> only work on SQL files.
+
+Create other YAREPL key maps to send visual and motions as explained in YAREPL [Wiki](https://github.com/milanglacier/yarepl.nvim/wiki/Example-Keymap-setup-without-using-the-%60plug%60-keymaps-shipped-with-yarepl).
+
 1. Open a `sql` file.
-2. Execute `<localleader>re` and select connection to use.
-3. Move the cursor to any SQL statement.
-4. Execute `<localleader>rr` to run SQL statement under the cursor or visually
-   selected using `usql`.
-5. A split window opens with the query results.
-6. Execute `<localleader>rf` to run all SQL statements contained in the file using `usql`.
+2. Open usql REPL with whichever key map you set.
+3. Execute `<localleader>rt` to open connection selector and select the
+   connection you want to use.
+4. Move the cursor to any SQL statement.
+5. Execute `<localleader>rs` to run SQL statement under the cursor.
+6. Execute `<localleader>rf` to run all SQL statements in the current buffer.
 
 ## Connections Config
 
@@ -72,8 +124,10 @@ available database connections. In addition to usql
 [configuration](https://github.com/xo/usql?tab=readme-ov-file#configuration)
 parameters, this plugin supports additional keys:
 
-* **display**: Used for display in the connections selector if present and
-  lualine status. If not present the connection YAML key is used instead.
+### Display
+
+The **display** parameter is used for display in the connections selector
+and lualine status. If not present the connection YAML key is used instead.
 
 Example configuration:
 
@@ -89,7 +143,7 @@ connections:
     password: secret_password
 ```
 
-## SSH Tunnel
+### SSH Tunnel
 
 This plugin enhances `usql` by adding the capability of defining SSH tunnels in
 the database configuration. If a database connection has the `ssh_config` key,

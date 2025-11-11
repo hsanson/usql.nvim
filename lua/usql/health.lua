@@ -22,6 +22,14 @@ M.check = function()
   else
     health_warn(string.format("Config file `%s` missing", config_path))
   end
+
+  local ok, res = pcall(require, "yarepl")
+
+  if ok then
+    health_ok(string.format("YAREPL plugin available"))
+  else
+    health_warn(string.format("YAREPL plugin not available"))
+  end
 end
 
 return M
