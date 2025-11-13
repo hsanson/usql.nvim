@@ -56,7 +56,11 @@ M.build_dsn_str = function(conn)
   end
 
   if conn["database"] then
-    dsn = dsn .. "/" .. conn["database"]
+    if conn["protocol"] == "sqlserver" then
+      dsn = dsn .. "?database=" .. conn["database"]
+    else
+      dsn = dsn .. "/" .. conn["database"]
+    end
   end
 
   conn["dsn"] = dsn
