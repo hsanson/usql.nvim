@@ -124,7 +124,7 @@ M.send_statement = function()
       statement.end_col
     )
 
-    yarepl._send_strings(id, name, current_buffer, str)
+    yarepl._send_strings(0, nil, current_buffer, str)
 end
 
 M.send_buffer = function()
@@ -138,7 +138,54 @@ M.send_buffer = function()
       -1
     )
 
-    yarepl._send_strings(id, name, current_buffer, str)
+    yarepl._send_strings(0, nil, current_buffer, str)
+end
+
+-- Safe wrapper for REPLSendVisual that handles the last line without newline issue
+M.send_visual = function(opts)
+    local id = opts.count or 0
+    local name = opts.args or ""
+    local current_buffer = vim.api.nvim_get_current_buf()
+
+    vim.api.nvim_feedkeys('\27', 'nx', false)
+
+    local visual_mode = vim.fn.visualmode()
+    
+    -- Safe implementation of get_lines that handles last line without newline
+    local begin_mark = "'<"
+    local end_mark = "'>"
+
+    local begin_pos = vim.fn.getpos(begin_mark)
+    local end_pos = vim.fn.getpos(end_mark)
+
+    local begin_line = begin_pos[2]
+    local begin_col = begin_pos[3]
+    local end_line = end_pos[2]
+    local end_col = end_pos[3]
+
+    local lines
+    if visual_mode == 'v' or visual_mode == 'char' then
+        lines = vim.api.nvim_buf_get_text(0, begin_line - 1, begin_col - 1, end_line - 1, -1, {})
+        if #lines > 0 and #lines[#lines] > 0 then
+            if begin_line == end_line then
+                end_col = end_col - begin_col + 1
+            end
+            -- Cap end_col to line length to avoid index out of range
+            end_col = math.min(end_col, #lines[#lines])
+            local offset = vim.str_utf_end(lines[#lines], end_col)
+            lines[#lines] = lines[#lines]:sub(1, end_col + offset)
+        end
+    else
+        -- Line-wise mode
+        lines = vim.api.nvim_buf_get_lines(0, begin_line - 1, end_line, false)
+    end
+
+    if #lines == 0 then
+        vim.notify 'No visual range!'
+        return
+    end
+
+    yarepl._send_strings(id, name, current_buffer, lines)
 end
 
 return M
