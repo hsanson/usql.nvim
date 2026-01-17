@@ -98,6 +98,7 @@ end
 
 M.select_connection = function()
   local has_telescope, telescope = pcall(require, "telescope")
+  local has_snacks, snacks = pcall(require, "snacks")
   local has_yarepl, yarepl = pcall(require, "yarepl")
 
   if not has_yarepl then
@@ -113,7 +114,24 @@ M.select_connection = function()
     return
   end
 
-  if has_telescope then
+  if has_snacks then
+    local success, snacks_usql = pcall(require, "snacks._extensions.usql")
+    if success and snacks_usql then
+      snacks_usql.connections()
+    else
+      vim.notify("usql: Snacks extension not loaded. Install snacks.nvim first.", vim.log.levels.WARN)
+      -- Fallback to vim.ui.select
+      vim.ui.select(
+        config.get_connections(), {
+          prompt = "Database Connections",
+          format_item = function(entry)
+            return entry["display"]
+          end,
+        }, function(choice)
+          M.set_current_connection(choice)
+      end)
+    end
+  elseif has_telescope then
     telescope.extensions.usql.connections()
   else
     vim.ui.select(
@@ -125,6 +143,16 @@ M.select_connection = function()
       }, function(choice)
         M.set_current_connection(choice)
     end)
+  end
+end
+
+-- Direct access to snacks picker for users who want to call it explicitly
+M.select_connection_snacks = function(opts)
+  local success, snacks_usql = pcall(require, "snacks._extensions.usql")
+  if success and snacks_usql then
+    snacks_usql.connections(opts)
+  else
+    vim.notify("usql: Snacks extension not available. Install snacks.nvim first.", vim.log.levels.ERROR)
   end
 end
 

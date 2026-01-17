@@ -14,7 +14,7 @@
 Simple Neovim plugin for the universal command-line database interface [usql](https://github.com/xo/usql). It depens on [yarepl.nvim](https://github.com/milanglacier/yarepl.nvim) for the heavy lifting and adds helpers to make it easier to work with SQL:
 
 - Provide yarepl command and formatter for usql.
-- Database connection selector using vim.ui or telescope if available.
+- Database connection selector using vim.ui, telescope, or snacks picker if available.
 - SSH tunneling on top of usql database connections.
 - Keymaps to work with usql repl:
   - <Plug>(SelectConnection)
@@ -29,6 +29,7 @@ Simple Neovim plugin for the universal command-line database interface [usql](ht
   - [nvim-treesitter SQL parser](https://github.com/nvim-treesitter/nvim-treesitter?tab=readme-ov-file#supported-languages) `:TSInstall sql`.
 - [yarepl.nvim](https://github.com/milanglacier/yarepl.nvim)
 - [telescope.nvim (optional)](https://github.com/nvim-telescope/telescope.nvim)
+- [snacks.nvim (optional)](https://github.com/folke/snacks.nvim)
 - [lualine.nvim (optional)](https://github.com/nvim-lualine/lualine.nvim)
 - ssh client (optional): Used to create SSH tunnels.
 
@@ -101,6 +102,37 @@ vim.keymap.set("n",
   "<Plug>(SendBuffer)",
   { desc = "Send current buffer" }
   )
+```
+
+### Snacks Picker Integration
+
+If you have [snacks.nvim](https://github.com/folke/snacks.nvim) installed, you can use the Snacks picker for connection selection. The plugin will automatically detect and use Snacks if available.
+
+You can also call the Snacks picker directly:
+
+```lua
+local usql_snacks = require("snacks._extensions.usql")
+usql_snacks.connections()
+```
+
+Or integrate it into your own picker setup:
+
+```lua
+vim.keymap.set("n", "<leader>db", function()
+  require("snacks._extensions.usql").connections({
+    layout = "dropdown" -- optional: specify layout
+  })
+end, { desc = "Select database connection" })
+```
+
+Alternatively, use the convenience function from the main usql module:
+
+```lua
+vim.keymap.set("n", "<leader>db", function()
+  require("usql").select_connection_snacks({
+    layout = "dropdown" -- optional: specify layout
+  })
+end, { desc = "Select database connection with Snacks picker" })
 ```
 
 > [!NOTE]
