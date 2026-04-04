@@ -23,12 +23,28 @@ M.check = function()
     health_warn(string.format("Config file `%s` missing", config_path))
   end
 
-  local ok, res = pcall(require, "yarepl")
+  local ok, _ = pcall(require, "yarepl")
 
   if ok then
     health_ok(string.format("YAREPL plugin available"))
   else
     health_warn(string.format("YAREPL plugin not available"))
+  end
+
+  local ts_ok, _ = pcall(vim.treesitter.language.inspect, "sql")
+
+  if ts_ok then
+    health_ok("Treesitter SQL parser installed")
+  else
+    health_warn("Treesitter SQL parser not installed (`:TSInstall sql`). Required for sending individual statements.")
+  end
+
+  local ts_ok, _ = pcall(vim.treesitter.language.inspect, "usql")
+
+  if ts_ok then
+    health_ok("Treesitter USQL parser installed")
+  else
+    health_warn("Treesitter USQL parser not installed. Install from https://github.com/hsanson/tree-sitter-usql.")
   end
 end
 

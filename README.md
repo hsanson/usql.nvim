@@ -27,6 +27,7 @@ Simple Neovim plugin for the universal command-line database interface [usql](ht
 - [usql](https://github.com/xo/usql)
 - [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter)
   - [nvim-treesitter SQL parser](https://github.com/nvim-treesitter/nvim-treesitter?tab=readme-ov-file#supported-languages) `:TSInstall sql`.
+  - [nvim-treesitter USQL parser](https://github.com/hsanson/tree-sitter-usql?tab=readme-ov-file#neovim-configuration).
 - [yarepl.nvim](https://github.com/milanglacier/yarepl.nvim)
 - [telescope.nvim (optional)](https://github.com/nvim-telescope/telescope.nvim)
 - [snacks.nvim (optional)](https://github.com/folke/snacks.nvim)
