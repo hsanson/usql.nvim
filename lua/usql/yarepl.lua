@@ -3,13 +3,29 @@ local yarepl = require("yarepl")
 
 local M = {}
 
+-- Check if a treesitter node is a SQL statement.
+-- Supports both the sql parser ("statement") and
+-- the usql parser ("select_statement", "insert_statement", etc.)
+local is_statement_node = function(node)
+    local t = node:type()
+    return t == "statement" or string.match(t, "_statement$") ~= nil
+end
+
+-- Check if a treesitter node is the root program node.
+-- Supports both the sql parser ("program") and
+-- the usql parser ("source_file").
+local is_root_node = function(node)
+    local t = node:type()
+    return t == "program" or t == "source_file"
+end
+
 -- Look for the statement closest to current cursor position
--- using Tree-sitter SQL parser.
+-- using Tree-sitter SQL/usql parser.
 local find_current_statement = function()
     local ts = vim.treesitter
 
     local current_node = ts.get_node()
-    while current_node and current_node:type() ~= "statement" do
+    while current_node and not is_statement_node(current_node) do
         current_node = current_node:parent()
     end
 
@@ -20,7 +36,7 @@ local find_current_statement = function()
         local sql_file = current_node:parent()
 
         local current_node_idx = 1
-        if sql_file and sql_file:type() == "program" then
+        if sql_file and is_root_node(sql_file) then
             -- Find the current node index
             for node in sql_file:iter_children() do
                 if node:id() == current_node:id() then
