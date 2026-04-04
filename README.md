@@ -11,7 +11,7 @@
 
 <p></p>
 
-Simple Neovim plugin for the universal command-line database interface [usql](https://github.com/xo/usql). It depens on [yarepl.nvim](https://github.com/milanglacier/yarepl.nvim) for the heavy lifting and adds helpers to make it easier to work with SQL:
+Simple Neovim plugin for the universal command-line database interface [usql](https://github.com/xo/usql). It depends on [yarepl.nvim](https://github.com/milanglacier/yarepl.nvim) for the heavy lifting and adds helpers to make it easier to work with SQL and USQL files:
 
 - Provide yarepl command and formatter for usql.
 - Database connection selector using vim.ui, telescope, or snacks picker if available.
@@ -137,8 +137,8 @@ end, { desc = "Select database connection with Snacks picker" })
 ```
 
 > [!NOTE]
-> You may want to add the above key maps in the ftplugin/sql.lua file so they
-> only work on SQL files.
+> You may want to add the above key maps in the ftplugin/usql.lua and
+> ftplugin/sql.lua files so they only work on USQL and SQL files.
 
 Create other YAREPL key maps to send visual and motions as explained in YAREPL [Wiki](https://github.com/milanglacier/yarepl.nvim/wiki/Example-Keymap-setup-without-using-the-%60plug%60-keymaps-shipped-with-yarepl).
 
