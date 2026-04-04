@@ -36,7 +36,7 @@ local find_current_statement = function()
                 end_col = c2
             }
         else
-            vim.notify("usql: SQL statement syntax error", vim.levels.log.ERROR)
+            vim.notify("usql: SQL statement syntax error", vim.log.levels.ERROR)
         end
     end
 
@@ -112,7 +112,7 @@ M.send_statement = function()
     local statement = find_current_statement()
 
     if statement == nil then
-      vim.notify("usql: no SQL statement found", vim.levels.log.WARNING)
+      vim.notify("usql: no SQL statement found", vim.log.levels.WARN)
       return
     end
 
