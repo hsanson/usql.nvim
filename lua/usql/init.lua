@@ -11,7 +11,6 @@ local current_connection = {
 local utils = require("usql.utils")
 local config = require("usql.config")
 local tunnel = require("usql.tunnel")
-local yarepl = require("yarepl")
 
 local M = {}
 
@@ -89,6 +88,7 @@ M.set_current_connection = function(conn)
     dsn = M.build_dsn_str(M.get_current_connection())
   end
 
+  local yarepl = require("yarepl")
   yarepl._send_strings(0, nil, current_buffer, {"\\c " .. dsn .. "\n"}, false, false, false)
 end
 
